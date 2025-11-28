@@ -1,5 +1,7 @@
 import "./globals.css";
-import Navbar from "./(auth)/(components)/Header";
+import SessionProviderWrapper from "./Components/SessionProviderWrapper";
+
+
 
 export const metadata = {
   title: "Create Next App",
@@ -10,44 +12,12 @@ export default function RootLayout({ children }) {
   return (
     <html lang="en">
       <body className="bg-gradient-to-br from-blue-50 via-purple-50/30 to-indigo-100/40">
-        {/* <Navbar /> */}
-        
-        {/* Main Content */}
+    
         <main className="min-h-screen">
+          <SessionProviderWrapper>
           {children}
+        </SessionProviderWrapper>
         </main>
-
-        {/* Footer
-        <footer className="bg-gradient-to-r from-white/90 via-blue-50/60 to-purple-50/60 backdrop-blur-sm border-t border-slate-200/50 px-4 py-12 sm:px-6 lg:px-8">
-          <div className="max-w-6xl mx-auto">
-            <div className="flex flex-col md:flex-row items-center justify-between">
-              <div className="flex items-center space-x-2 mb-6 md:mb-0">
-                <div className="w-8 h-8 bg-gradient-to-r from-blue-600 to-purple-600 rounded-xl flex items-center justify-center shadow-lg">
-                  <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                  </svg>
-                </div>
-                <span className="font-bold text-slate-900 text-lg">AssignmentAI</span>
-              </div>
-              <div className="flex items-center space-x-8">
-                <a href="/about" className="text-slate-600 hover:text-slate-900 transition-colors font-medium">
-                  About
-                </a>
-                <a href="/contact" className="text-slate-600 hover:text-slate-900 transition-colors font-medium">
-                  Contact
-                </a>
-                <a href="/privacy" className="text-slate-600 hover:text-slate-900 transition-colors font-medium">
-                  Privacy
-                </a>
-              </div>
-            </div>
-            <div className="mt-8 pt-8 border-t border-slate-200/50 text-center">
-              <p className="text-slate-500 font-medium">
-                © 2025 AssignmentAI. All rights reserved.
-              </p>
-            </div>
-          </div>
-        </footer> */}
       </body>
     </html>
   );

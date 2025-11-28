@@ -1,4 +1,4 @@
-import Homepage from "./(auth)/(components)/Homepage";
+import Homepage from "./Components/Homepage";
 import Link from "next/link";
 
 export const metadata = {

@@ -1,4 +1,4 @@
-import ChatPreviewInterface from "./Editor.jsx";
+import ChatPreviewInterface from "./EditorMinimize.jsx";
 
 export default function ChatInterface(){
     return(

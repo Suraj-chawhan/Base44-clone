@@ -4,8 +4,8 @@ import { FileText, Home, ArrowLeft, BookOpen, AlertCircle } from 'lucide-react';
 export default function NotFound() {
   const suggestions = [
     { icon: <Home className="w-5 h-5" />, text: "Go Home", href: "/" },
-    { icon: <BookOpen className="w-5 h-5" />, text: "Browse Templates", href: "/templates" },
-    { icon: <FileText className="w-5 h-5" />, text: "Create Assignment", href: "/create" }
+    { icon: <BookOpen className="w-5 h-5" />, text: "Browse Templates", href: "/dashboard" },
+    { icon: <FileText className="w-5 h-5" />, text: "Create Assignment", href: "/editor" }
   ];
 
   return (

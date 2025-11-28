@@ -216,7 +216,7 @@ export default function Homepage() {
                   plan.popular
                     ? 'bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white'
                     : 'bg-gradient-to-r from-slate-100 to-blue-100/80 hover:from-slate-200 hover:to-blue-200/80 text-slate-800'
-                }`}>
+                }`} onClick={()=>router.push("/pricing")}>
                   Get Started
                 </button>
               </div>
