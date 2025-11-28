@@ -1,4 +1,249 @@
+
 "use client";
+
+import { useState, useRef, useEffect } from "react";
+import {
+  Send,
+  FileUp,
+  Trash2,
+  Bot,
+  User,
+  CreditCard,
+  Smartphone,
+  Monitor,
+} from "lucide-react";
+import {
+  SandpackProvider,
+  SandpackLayout,
+  SandpackCodeEditor,
+  SandpackPreview,
+} from "@codesandbox/sandpack-react";
+import GitHubOverlay from "./GitHubOverlay";
+import Loading from "../Components/Loading.js"; // adjust path if needed
+
+export default function AIWebsiteBuilder() {
+  const [chatInput, setChatInput] = useState("");
+  const [messages, setMessages] = useState([{ role: "bot", text: "👋 Hi! Tell me what page you want to build." }]);
+  const [files, setFiles] = useState([]);
+  const [aiPage, setAiPage] = useState(null); // { title, html, data }
+  const [isTyping, setIsTyping] = useState(false);
+  const [showGitHub, setShowGitHub] = useState(false);
+  const [previewMode, setPreviewMode] = useState("desktop");
+  const [loadingSession, setLoadingSession] = useState(true);
+
+  const endRef = useRef(null);
+
+  useEffect(() => {
+    endRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [messages]);
+
+  // Simulate session load (if you have session logic remove this)
+  useEffect(() => {
+    setTimeout(() => setLoadingSession(false), 200);
+  }, []);
+
+  const uploadFiles = (e) => setFiles((prev) => [...prev, ...Array.from(e.target.files)]);
+
+  // Main send -> call /api/ai
+  const sendMessage = async () => {
+    const prompt = chatInput?.trim();
+    if (!prompt) return;
+
+    // add user message to chat
+    const userMsg = { role: "user", text: prompt };
+    setMessages((prev) => [...prev, userMsg]);
+    setChatInput("");
+    setIsTyping(true);
+
+    try {
+      const res = await fetch("/api/ai", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ prompt }),
+      });
+
+      const data = await res.json();
+
+      if (!data?.success || !data?.result) {
+        throw new Error(data?.message || "Invalid response from AI");
+      }
+
+      const { title, html, data: jsonData } = data.result;
+
+      // set AI page and show success message
+      setAiPage({ title: title || "AI Page", html, data: jsonData ?? {} });
+      setMessages((prev) => [...prev, { role: "bot", text: `✅ Generated: ${title ?? "Page"}` }]);
+    } catch (err) {
+      console.error("AI generate error:", err);
+      setMessages((prev) => [...prev, { role: "bot", text: "⚠️ Failed to generate. Try again." }]);
+    } finally {
+      setIsTyping(false);
+    }
+  };
+
+  if (loadingSession) return <Loading />;
+
+  return (
+    <div className="flex h-screen bg-gray-100">
+      {/* Left Sidebar */}
+      <div className="w-1/3 border-r bg-white flex flex-col relative">
+        <div className="p-4 border-b bg-slate-50 font-bold text-indigo-600 flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <Bot /> AI Website Builder
+          </div>
+          <button
+            onClick={() => setShowGitHub(true)}
+            className="px-3 py-1 bg-green-500 hover:bg-green-600 rounded text-black"
+          >
+            GitHub
+          </button>
+        </div>
+
+        <div className="flex-1 overflow-auto p-4 space-y-4">
+          {messages.map((m, i) => (
+            <div key={i} className={`flex gap-2 ${m.role === "user" ? "justify-end" : ""}`}>
+              {m.role === "bot" && <Bot className="w-5 h-5 text-indigo-500" />}
+              <div
+                className={`px-3 py-2 rounded-lg max-w-[75%] ${
+                  m.role === "user" ? "bg-indigo-600 text-white" : "bg-slate-100 text-slate-800"
+                }`}
+              >
+                {m.text}
+              </div>
+              {m.role === "user" && <User className="w-5 h-5 text-indigo-500" />}
+            </div>
+          ))}
+          {isTyping && <div className="text-slate-500 italic">AI is typing...</div>}
+          <div ref={endRef}></div>
+        </div>
+
+        {/* Uploaded files */}
+        {files.length > 0 && (
+          <div className="m-4 border rounded p-2 space-y-2 bg-slate-50">
+            {files.map((f, i) => (
+              <div key={i} className="flex justify-between items-center">
+                <span className="text-sm">{f.name}</span>
+                <button onClick={() => setFiles(files.filter((_, j) => j !== i))} className="text-red-500 hover:text-red-700">
+                  <Trash2 className="w-4 h-4" />
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {/* Input */}
+        <div className="p-4 border-t flex gap-2">
+          <input type="file" multiple hidden id="file" onChange={uploadFiles} />
+          <button onClick={() => document.getElementById("file").click()} className="p-2 border rounded hover:bg-slate-100">
+            <FileUp className="w-4 h-4" />
+          </button>
+          <input
+            value={chatInput}
+            onChange={(e) => setChatInput(e.target.value)}
+            onKeyDown={(e) => e.key === "Enter" && sendMessage()}
+            placeholder="Type what you want (e.g. 'Make a todo app')..."
+            className="flex-1 border rounded px-3 py-2"
+          />
+          <button onClick={sendMessage} className="p-2 bg-indigo-600 text-white rounded hover:bg-indigo-700">
+            <Send className="w-4 h-4" />
+          </button>
+        </div>
+      </div>
+
+      {/* Right Preview */}
+      <div className="flex-1 flex flex-col bg-gray-50">
+        {/* Top bar */}
+        <div className="p-4 border-b flex justify-between items-center bg-white">
+          <div className="flex items-center gap-4">
+            <div className="flex items-center gap-3">
+              <User className="w-5 h-5 text-indigo-500" />
+              <span className="font-bold text-slate-800">John Doe</span>
+              <span className="text-sm text-slate-600">Pro Plan</span>
+              <div className="flex items-center gap-1 text-slate-700">
+                <CreditCard className="w-4 h-4" />
+                <span>100</span>
+              </div>
+            </div>
+          </div>
+
+          <div>
+            <button
+              onClick={() => setPreviewMode(previewMode === "desktop" ? "mobile" : "desktop")}
+              className="p-2 border rounded hover:bg-gray-100"
+            >
+              {previewMode === "desktop" ? <Smartphone className="w-4 h-4" /> : <Monitor className="w-4 h-4" />}
+            </button>
+          </div>
+        </div>
+
+        {/* Sandpack preview: show AI HTML or placeholder */}
+        <div className="flex-1 p-4">
+          <SandpackProvider
+            template="static"
+            files={{
+              "/index.html": {
+                code: aiPage?.html ?? getPlaceholderHtml(),
+                active: true,
+              },
+            }}
+          >
+            <SandpackLayout className="h-full">
+              <div className={`flex-1 p-2 ${previewMode === "mobile" ? "max-w-[375px] mx-auto border rounded shadow-md" : ""}`}>
+                <SandpackPreview className="border rounded h-full w-full" />
+              </div>
+
+              {/* Optional editor: show HTML source */}
+              <div className="w-1/3 hidden md:block">
+                <div className="mb-2 font-semibold">HTML Source</div>
+                <div className="h-[60vh] overflow-auto border rounded">
+                  <SandpackCodeEditor showLineNumbers readOnly wrapContent />
+                </div>
+              </div>
+            </SandpackLayout>
+          </SandpackProvider>
+
+          {/* Show generated JSON data if available */}
+          {aiPage?.data && Object.keys(aiPage.data).length > 0 && (
+            <div className="mt-4 bg-white p-3 rounded border">
+              <h4 className="font-semibold mb-2">Generated JSON</h4>
+              <pre className="text-xs whitespace-pre-wrap">{JSON.stringify(aiPage.data, null, 2)}</pre>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {showGitHub && <GitHubOverlay onClose={() => setShowGitHub(false)} />}
+    </div>
+  );
+}
+
+// Placeholder HTML when nothing generated yet
+function getPlaceholderHtml() {
+  return `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>AI Preview Placeholder</title>
+  <style>
+    body { font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial; background: linear-gradient(90deg,#eef2ff,#eef6ff); margin:0; height:100vh; display:flex; align-items:center; justify-content:center; color:#334155 }
+    .box { text-align:center; background:white; padding:32px; border-radius:12px; box-shadow:0 6px 20px rgba(15,23,42,0.06); max-width:520px; }
+    h1 { margin:0 0 8px; color:#0f172a }
+    p { margin:0; color:#475569 }
+  </style>
+</head>
+<body>
+  <div class="box">
+    <h1>AI Preview</h1>
+    <p>Type what you want (for example: "Create a modern todo app") and click the send button.</p>
+  </div>
+</body>
+</html>`;
+}
+
+
+
+/*"use client";
 
 import { useState, useRef, useEffect } from "react";
 import { Send, FileUp, Trash2, Bot, User, CreditCard, Smartphone, Monitor } from "lucide-react";
@@ -194,3 +439,4 @@ export default function AIWebsiteBuilder() {
     </div>
   );
 }
+*/
