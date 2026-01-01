@@ -334,7 +334,7 @@ export default function AIWebsiteBuilder() {
 
   return (
     <div className="flex h-screen bg-gray-100">
-      {/* Left Sidebar */}
+      
       <div className="w-1/3 border-r bg-white flex flex-col relative">
         <div className="p-4 border-b bg-slate-50 font-bold text-indigo-600 flex items-center justify-between">
           <div className="flex items-center gap-2"><Bot /> AI Website Builder</div>
@@ -358,7 +358,7 @@ export default function AIWebsiteBuilder() {
           <div ref={endRef}></div>
         </div>
 
-        {/* Uploaded files */}
+     
         {files.length > 0 && (
           <div className="m-4 border rounded p-2 space-y-2 bg-slate-50">
             {files.map((f, i) => (
@@ -372,7 +372,7 @@ export default function AIWebsiteBuilder() {
           </div>
         )}
 
-        {/* Input */}
+     
         <div className="p-4 border-t flex gap-2">
           <input type="file" multiple hidden id="file" onChange={uploadFiles} />
           <button onClick={() => document.getElementById("file").click()} className="p-2 border rounded hover:bg-slate-100">
@@ -391,13 +391,12 @@ export default function AIWebsiteBuilder() {
         </div>
       </div>
 
-      {/* Right Sidebar / Preview Section */}
+     
       <div className="flex-1 flex flex-col bg-gray-50">
-        {/* Top bar: session info left, responsiveness toggle right */}
+        
         <div className="p-4 border-b flex justify-between items-center bg-white">
           <div className="flex items-center gap-4">
-            {/* Session info */}
-            {/* {session ? ( */}
+           
             <div className="flex items-center gap-3">
               <User className="w-5 h-5 text-indigo-500" />
               <span className="font-bold text-slate-800">John Doe</span>
@@ -407,7 +406,7 @@ export default function AIWebsiteBuilder() {
                 <span>100</span>
               </div>
             </div>
-            {/* ) : ""} */}
+            {/* ) : ""} 
           </div>
 
           <div>
@@ -434,7 +433,7 @@ export default function AIWebsiteBuilder() {
         </SandpackProvider>
       </div>
 
-      {/* GitHub Overlay */}
+     
       {showGitHub && <GitHubOverlay onClose={() => setShowGitHub(false)} />}
     </div>
   );
