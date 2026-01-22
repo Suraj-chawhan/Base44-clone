@@ -18,7 +18,7 @@
     "langchain": "^1.1.1",
     "lucide-react": "^0.540.0",
     "mongoose": "^8.19.0",
-    "next": "15.5.0",
+    "next": "15.5.9",
     "next-auth": "^4.24.11",
     "octokit": "^5.0.3",
     "razorpay": "^2.9.6",
