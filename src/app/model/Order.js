@@ -39,7 +39,7 @@ const orderSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
-// ✅ Prevent model overwrite in Next.js hot reload
+// Prevent model overwrite in Next.js hot reload
 const Order = mongoose.models.Order || mongoose.model("Order", orderSchema);
 
 export default Order;
