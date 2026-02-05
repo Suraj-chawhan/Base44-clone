@@ -285,7 +285,7 @@ export default function AIWebsiteBuilder() {
           </div>
         </div>
 
-        <div className="flex-1 overflow-auto p-6">
+        <div className="flex-1 overflow-auto p-6 w-[100vh] max-w-full">
           <SandpackProvider
             template="static"
             files={{
