@@ -1,6 +1,5 @@
-import Navbar from "@/app/(auth)/(components)/Header";
-import Footer from "@/app/(auth)/(components)/Footer";
-
+import Navbar from "@/app/Components/Header";
+import Footer from "@/app/Components/Footer";
 export default function TermsOfServicesLayout({ children }) {
   return (
     <>
