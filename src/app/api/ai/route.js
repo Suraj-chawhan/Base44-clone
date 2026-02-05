@@ -1,80 +1,98 @@
 import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
-import { authOptions } from "../auth/[...nextauth]";
-import dotenv from "dotenv";
+import { authOptions } from "../auth/[...nextauth]/route";
 
 import { z } from "zod";
 import { ChatGroq } from "@langchain/groq";
 
-dotenv.config();
+// ---- ZOD SCHEMA ----
+const AiSchema = z.object({
+  title: z.string(),
+  summary: z.string(),
+  html: z.string(),
+  features: z.array(z.string()).optional(),
+  data: z.record(z.any()).optional(),
+});
 
 export async function POST(req) {
   try {
     // ---- AUTH ----
     const session = await getServerSession(authOptions);
-
     if (!session) {
       return NextResponse.json(
-        { message: "Unauthorized" },
+        { success: false, message: "Unauthorized" },
         { status: 401 }
       );
     }
 
     const { prompt } = await req.json();
-
     if (!prompt) {
       return NextResponse.json(
-        { message: "Prompt required" },
+        { success: false, message: "Prompt required" },
         { status: 400 }
       );
     }
 
-    // ---- Init Groq Model ----
+    // ---- INIT GROQ ----
     const llm = new ChatGroq({
-      model: "llama3-70b-8192", // or mixtral-8x7b if you want
       apiKey: process.env.GROQ_API_KEY,
+      model: "openai/gpt-oss-120b", // or llama3-70b
       temperature: 0.4,
     });
 
-    // ---- Structured Output Schema ----
-    const schema = z.object({
-      title: z.string(),
-      summary: z.string(),
-      html: z.string().describe(
-        "Full standalone HTML including inline CSS & JavaScript. Must run without external files."
-      ),
-      features: z.array(z.string()).optional(),
-      data: z.record(z.any()).optional(),
-    });
+    // ---- FORCE STRICT JSON ----
+    const systemPrompt = `
+You are a JSON-only API.
 
-    // ---- Attach structure enforcement ----
-    const structuredModel = llm.withStructuredOutput(schema);
+Return ONLY valid JSON.
+NO markdown.
+NO explanations.
+NO comments.
 
-    // ---- RUN AI ----
-    const result = await structuredModel.invoke(`
-      Create a fully working UI based on this instruction:
+Schema:
+{
+  "title": string,
+  "summary": string,
+  "html": string,
+  "features"?: string[],
+  "data"?: object
+}
 
-      "${prompt}"
+Rules:
+- html MUST be a full standalone HTML file with css header footer and dont use character /n or other in code or text and make ui clean proffesinal
+- Inline CSS & JS only
+- Responsive modern UI
+`;
 
-      Rules:
-      - Produce a complete HTML file in one string (inline CSS + JS).
-      - UI must be responsive and modern.
-      - If functionality required (example: todo list), include working JS logic.
-      - Output must follow schema EXACTLY. No extra text.
-    `);
+    const response = await llm.invoke([
+      { role: "system", content: systemPrompt },
+      { role: "user", content: prompt },
+    ]);
+
+    // ---- PARSE JSON ----
+    let parsed;
+    try {
+      parsed = JSON.parse(response.content);
+    } catch (err) {
+      console.error("RAW AI OUTPUT:", response.content);
+      throw new Error("AI returned invalid JSON");
+    }
+
+    // ---- VALIDATE ----
+    const result = AiSchema.parse(parsed);
+
+    return NextResponse.json(
+      { success: true, result },
+      { status: 200 }
+    );
+  } catch (error) {
+    console.error("AI Generation Error:", error);
 
     return NextResponse.json(
       {
-        success: true,
-        result,
+        success: false,
+        message: error.message || "Server error",
       },
-      { status: 200 }
-    );
-
-  } catch (error) {
-    console.error("AI Generation Error:", error);
-    return NextResponse.json(
-      { message: "Server error", error: error.message },
       { status: 500 }
     );
   }

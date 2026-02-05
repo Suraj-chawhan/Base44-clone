@@ -1,19 +1,15 @@
 import Razorpay from "razorpay";
-import { connectDB } from "../../../../../lib/mongodb"; // your DB connection
+import connectDB from "../../../../../lib/mongodb";
 import Order from "../../../model/Order";
-import { getServerSession } from "next-auth/next";
-import { authOptions } from "../auth/[...nextauth]"; // NextAuth config
-import dotenv from "dotenv";
+import User from "../../../model/User";
+import { getServerSession } from "next-auth";
+import { authOptions } from "../../auth/[...nextauth]/route";
 
-dotenv.config();
-
-// Initialize Razorpay
 const razorpay = new Razorpay({
-  key_id: process.env.RAZORPAY_KEY_ID,
-  key_secret: process.env.RAZORPAY_KEY_SECRET,
+  key_id: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID, // ✅ safe
+  key_secret: process.env.RAZORPAY_KEY_SECRET,    // ✅ server-only
 });
 
-// Plan prices (in paise)
 const PLAN_PRICES = {
   pre: 2500 * 100,
   mid: 5000 * 100,
@@ -22,58 +18,45 @@ const PLAN_PRICES = {
 
 export async function POST(req) {
   try {
-    await connectDB(); // connect to MongoDB
+    await connectDB();
 
     const session = await getServerSession(authOptions);
-    if (!session) {
+    if (!session?.user?.id) {
       return new Response(JSON.stringify({ message: "Unauthorized" }), { status: 401 });
     }
 
-    const user = session.user; // This is your NextAuth user object
-    const body = await req.json();
-    const { plan } = body;
-
+    const { plan } = await req.json();
     if (!PLAN_PRICES[plan]) {
-      return new Response(JSON.stringify({ message: "Invalid plan selected" }), { status: 400 });
+      return new Response(JSON.stringify({ message: "Invalid plan" }), { status: 400 });
     }
 
-    // Optionally, fetch full user document if you need extra fields like `plan` and `planExpiry`
-    const userDoc = await User.findById(user.id);
-    if (!userDoc) {
+    const user = await User.findById(session.user.id);
+    if (!user) {
       return new Response(JSON.stringify({ message: "User not found" }), { status: 404 });
     }
 
-    if (userDoc.plan !== "free" && userDoc.planExpiry && userDoc.planExpiry > new Date()) {
-      return new Response(
-        JSON.stringify({
-          success: false,
-          message: `You already have an active ${userDoc.plan} subscription until ${userDoc.planExpiry.toDateString()}`,
-        }),
-        { status: 400 }
-      );
+    if (user.plan !== "free" && user.planExpiry > new Date()) {
+      return new Response(JSON.stringify({ message: "Active subscription exists" }), { status: 400 });
     }
 
-    const options = {
+    const order = await razorpay.orders.create({
       amount: PLAN_PRICES[plan],
       currency: "INR",
-      receipt: `receipt_${Date.now()}`,
-    };
+      receipt: `rcpt_${Date.now()}`,
+    });
 
-    const order = await razorpay.orders.create(options);
-
-    // Save order in DB
-    const newOrder = await Order.create({
-      user: user.id,
+    await Order.create({
+      user: user._id,
       razorpayOrderId: order.id,
-      amount: options.amount,
-      currency: options.currency,
+      amount: order.amount,
+      currency: order.currency,
       plan,
       status: "created",
     });
 
-    return new Response(JSON.stringify({ order, newOrder }), { status: 200 });
-  } catch (error) {
-    console.error(error);
-    return new Response(JSON.stringify({ message: "Error creating order" }), { status: 500 });
+    return new Response(JSON.stringify(order), { status: 200 });
+  } catch (err) {
+    console.error("Razorpay Order Error:", err);
+    return new Response(JSON.stringify({ message: "Server error" }), { status: 500 });
   }
 }

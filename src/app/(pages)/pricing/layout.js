@@ -1,5 +1,5 @@
 import Navbar from "../../Components/Header";
-import Footer from "../../app/Components/Footer";
+import Footer from "../../Components/Footer";
 
 export default function PricingLayout({ children }) {
   return (

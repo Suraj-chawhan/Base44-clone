@@ -1,55 +1,52 @@
 "use client";
 import React, { useState,useEffect } from "react";
-import { FileText, Eye, EyeOff, ArrowRight, Mail, Lock, User } from "lucide-react";
+import { FileText, Eye, EyeOff, ArrowRight, Mail, Lock } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { signIn, useSession } from "next-auth/react";
 
-export default function SignupForm() {
+import { signIn, useSession } from "next-auth/react";
+export default function LoginForm() {
   const router = useRouter();
   const [showPassword, setShowPassword] = useState(false);
-  const [formData, setFormData] = useState({ name: "", email: "", password: "" });
+  const [formData, setFormData] = useState({ email: "", password: "" });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+const { data: session, status } = useSession();
 
- const { data: session, status } = useSession();
-
-
-    useEffect(() => {
+   useEffect(() => {
     if (status === "authenticated") {
       router.push("/editor");
     }
   }, [status, router]);
 
 
-  const handleChange = (field, value) => {
-    setFormData((prev) => ({ ...prev, [field]: value }));
-    if (error) setError("");
-  };
 
-  const handleSubmit = async () => {
-    if (!formData.name || !formData.email || !formData.password) {
-      setError("All fields are required");
-      return;
-    }
-    setLoading(true);
-    try {
-      const res = await fetch("/api/auth/signup", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(formData),
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.message || "Signup failed");
+const handleSubmit = async () => {
+  if (!formData.email || !formData.password) {
+    setError("Email and password are required");
+    return;
+  }
 
-      await signIn("credentials", { email: formData.email, password: formData.password, redirect: false });
-      router.push("/login");
-    } catch (err) {
-      setError(err.message);
-    } finally {
-      setLoading(false);
-    }
-  };
+ 
+
+  setLoading(true);
+  setError("");
+
+  const res = await signIn("credentials", {
+    email: formData.email.toLowerCase(),
+    password: formData.password,
+    redirect: false,
+  });
+
+  if (res?.error) {
+    setError("Invalid email or password");
+    setLoading(false);
+    return;
+  }
+
+  localStorage.setItem("firstLogin", "true");
+  router.push("/editor");
+};
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-orange-50 via-amber-50 to-yellow-50 flex">
@@ -66,10 +63,10 @@ export default function SignupForm() {
           
           <div className="space-y-6">
             <h2 className="text-5xl font-bold text-white leading-tight">
-              Start Your AI Journey Today
+              Welcome Back to Your AI Workspace
             </h2>
             <p className="text-xl text-orange-100 leading-relaxed">
-              Join thousands of users creating amazing content with the power of artificial intelligence.
+              Continue building amazing content with the power of artificial intelligence at your fingertips.
             </p>
           </div>
         </div>
@@ -89,8 +86,8 @@ export default function SignupForm() {
           </div>
 
           <div className="mb-8">
-            <h2 className="text-4xl font-bold text-slate-900 mb-2">Create Account</h2>
-            <p className="text-slate-600 text-lg">Start generating assignments with AI</p>
+            <h2 className="text-4xl font-bold text-slate-900 mb-2">Sign In</h2>
+            <p className="text-slate-600 text-lg">Access your account to continue</p>
           </div>
 
           {error && (
@@ -102,22 +99,6 @@ export default function SignupForm() {
           <div className="space-y-5">
             <div>
               <label className="block text-sm font-semibold text-slate-700 mb-2">
-                Full Name
-              </label>
-              <div className="relative">
-                <input
-                  type="text"
-                  placeholder="Enter your full name"
-                  value={formData.name}
-                  onChange={(e) => handleChange("name", e.target.value)}
-                  className="w-full bg-white border-2 border-slate-200 rounded-xl pl-12 pr-4 py-3.5 focus:outline-none focus:border-orange-500 focus:ring-4 focus:ring-orange-100 transition-all"
-                />
-                <User className="absolute left-4 top-4 text-slate-400 w-5 h-5" />
-              </div>
-            </div>
-
-            <div>
-              <label className="block text-sm font-semibold text-slate-700 mb-2">
                 Email Address
               </label>
               <div className="relative">
@@ -125,7 +106,7 @@ export default function SignupForm() {
                   type="email"
                   placeholder="Enter your email"
                   value={formData.email}
-                  onChange={(e) => handleChange("email", e.target.value)}
+                  onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                   className="w-full bg-white border-2 border-slate-200 rounded-xl pl-12 pr-4 py-3.5 focus:outline-none focus:border-orange-500 focus:ring-4 focus:ring-orange-100 transition-all"
                 />
                 <Mail className="absolute left-4 top-4 text-slate-400 w-5 h-5" />
@@ -139,9 +120,9 @@ export default function SignupForm() {
               <div className="relative">
                 <input
                   type={showPassword ? "text" : "password"}
-                  placeholder="Create a password"
+                  placeholder="Enter your password"
                   value={formData.password}
-                  onChange={(e) => handleChange("password", e.target.value)}
+                  onChange={(e) => setFormData({ ...formData, password: e.target.value })}
                   className="w-full bg-white border-2 border-slate-200 rounded-xl pl-12 pr-12 py-3.5 focus:outline-none focus:border-orange-500 focus:ring-4 focus:ring-orange-100 transition-all"
                 />
                 <Lock className="absolute left-4 top-4 text-slate-400 w-5 h-5" />
@@ -155,14 +136,13 @@ export default function SignupForm() {
               </div>
             </div>
 
-            <div className="text-sm text-slate-600 bg-orange-50 border border-orange-200 rounded-lg p-3">
-              By signing up, you agree to our{" "}
-              <Link href="/terms" className="text-orange-600 hover:text-orange-700 font-semibold">
-                Terms of Service
-              </Link>{" "}
-              and{" "}
-              <Link href="/privacy" className="text-orange-600 hover:text-orange-700 font-semibold">
-                Privacy Policy
+            <div className="flex items-center justify-between text-sm">
+              <label className="flex items-center gap-2 cursor-pointer">
+                <input type="checkbox" className="w-4 h-4 rounded border-slate-300 text-orange-600 focus:ring-orange-500" />
+                <span className="text-slate-600">Remember me</span>
+              </label>
+              <Link href="/forgot-password" className="text-orange-600 hover:text-orange-700 font-semibold">
+                Forgot password?
               </Link>
             </div>
 
@@ -171,14 +151,14 @@ export default function SignupForm() {
               disabled={loading}
               className="w-full bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white font-bold py-4 rounded-xl shadow-lg hover:shadow-xl transition-all flex justify-center items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              {loading ? "Creating Account..." : "Create Account"}
+              {loading ? "Signing In..." : "Sign In"}
               {!loading && <ArrowRight className="w-5 h-5" />}
             </button>
 
             <div className="text-center text-slate-600">
-              Already have an account?{" "}
-              <Link className="text-orange-600 hover:text-orange-700 font-bold" href="/login">
-                Sign In
+              Don't have an account?{" "}
+              <Link className="text-orange-600 hover:text-orange-700 font-bold" href="/signup">
+                Create Account
               </Link>
             </div>
 

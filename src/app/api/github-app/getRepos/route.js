@@ -2,7 +2,7 @@ import connectDB from "../../../../../lib/mongodb";
 import BotFile from "../../../model/BotFileSchema";
 import User from "../../../model/User";
 import { getServerSession } from "next-auth/next";
-import { authOptions } from "../../auth/[...nextauth]/route";
+
 import { App } from "octokit";
 
 export async function GET() {

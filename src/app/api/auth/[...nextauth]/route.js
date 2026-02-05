@@ -6,29 +6,24 @@ import bcrypt from "bcryptjs";
 import connectDB from "../../../../../lib/mongodb";
 import User from "../../../model/User";
 
-const authOptions = {
+export const authOptions = {
   secret: process.env.NEXTAUTH_SECRET,
 
-  // 🔹 Use JWT strategy with 7 days expiry
   session: {
     strategy: "jwt",
-    maxAge: 7 * 24 * 60 * 60, // 7 days in seconds
   },
 
   providers: [
-    // 🟢 Google
     GoogleProvider({
       clientId: process.env.GOOGLE_CLIENT_ID,
       clientSecret: process.env.GOOGLE_CLIENT_SECRET,
     }),
 
-    // 🟣 GitHub
     GitHubProvider({
       clientId: process.env.GITHUB_CLIENT_ID,
       clientSecret: process.env.GITHUB_CLIENT_SECRET,
     }),
 
-    // 🔐 Credentials (local login)
     CredentialsProvider({
       name: "Credentials",
       credentials: {
@@ -37,73 +32,53 @@ const authOptions = {
       },
       async authorize(credentials) {
         await connectDB();
-        const user = await User.findOne({ email: credentials.email }).select("+password");
-        if (!user) throw new Error("No user found with this email.");
 
-        const isValid = await bcrypt.compare(credentials.password, user.password);
-        if (!isValid) throw new Error("Invalid password.");
-        return user;
+        if (!credentials?.email || !credentials?.password) {
+          return null;
+        }
+
+        const user = await User.findOne({
+          email: credentials.email.toLowerCase(),
+        }).select("+password");
+
+        if (!user) return null;
+
+        const isValid = await bcrypt.compare(
+          credentials.password,
+          user.password
+        );
+
+        if (!isValid) return null;
+
+        return {
+          id: user._id.toString(),
+          email: user.email,
+          name: user.name,
+        };
       },
     }),
   ],
 
   callbacks: {
-    // 🧠 On sign-in (Google/GitHub): ensure DB user exists
-    async signIn({ user, account, profile }) {
-      await connectDB();
-      if (account.provider === "google" || account.provider === "github") {
-        let dbUser = await User.findOne({ email: user.email });
-        if (!dbUser) {
-          dbUser = await User.create({
-            name: user.name || profile.name || "Unknown",
-            email: user.email,
-            provider: account.provider,
-            isVerified: true,
-            plan: "free",
-            credits: 3,
-          });
-        }
-      }
-      return true;
-    },
-
-    // 🧾 JWT token — store all important fields
     async jwt({ token, user }) {
-      await connectDB();
-      const dbUser = await User.findOne({ email: token.email || user?.email });
-      if (dbUser) {
-        token.id = dbUser._id.toString();
-        token.name = dbUser.name;
-        token.email = dbUser.email;
-        token.provider = dbUser.provider;
-        token.plan = dbUser.plan;
-        token.planExpiry = dbUser.planExpiry;
-        token.credits = dbUser.credits;
-        token.installationId = dbUser.installationId;
+      if (user) {
+        token.id = user.id;
+        token.email = user.email;
+        token.name = user.name;
       }
       return token;
     },
 
-    // 💾 Session — expose everything except password
     async session({ session, token }) {
-      if (token) {
-        session.user = {
-          id: token.id,
-          name: token.name,
-          email: token.email,
-          provider: token.provider,
-          plan: token.plan,
-          planExpiry: token.planExpiry,
-          credits: token.credits,
-          installationId: token.installationId,
-        };
-      }
+      session.user.id = token.id;
+      session.user.email = token.email;
+      session.user.name = token.name;
       return session;
     },
   },
 
   pages: {
-    signIn: "/editor",
+    signIn: "/login",
   },
 };
 
